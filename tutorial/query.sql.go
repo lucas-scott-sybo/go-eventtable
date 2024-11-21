@@ -13,22 +13,24 @@ import (
 
 const createEvent = `-- name: CreateEvent :one
 INSERT INTO events
-    (aggregate_id, kind, version, created_at, data)
+    (aggregate_id, aggregate_kind, kind, version, created_at, data)
 VALUES
-    ($1, $2, $3, current_timestamp, $4)
-RETURNING id, aggregate_id, kind, version, created_at, data
+    ($1, $2, $3, $4, current_timestamp, $5)
+RETURNING id, aggregate_id, aggregate_kind, kind, version, created_at, data
 `
 
 type CreateEventParams struct {
-	AggregateID int32
-	Kind        string
-	Version     string
-	Data        []byte
+	AggregateID   int32
+	AggregateKind string
+	Kind          string
+	Version       string
+	Data          []byte
 }
 
 func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event, error) {
 	row := q.db.QueryRow(ctx, createEvent,
 		arg.AggregateID,
+		arg.AggregateKind,
 		arg.Kind,
 		arg.Version,
 		arg.Data,
@@ -37,6 +39,7 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event
 	err := row.Scan(
 		&i.ID,
 		&i.AggregateID,
+		&i.AggregateKind,
 		&i.Kind,
 		&i.Version,
 		&i.CreatedAt,
@@ -101,8 +104,47 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
+const getEventsForUser = `-- name: GetEventsForUser :many
+SELECT id, aggregate_id, aggregate_kind, kind, version, created_at, data FROM events
+WHERE aggregate_id = $1 AND aggregate_kind = 'user' AND created_at >= $2 LIMIT $3
+`
+
+type GetEventsForUserParams struct {
+	AggregateID int32
+	CreatedAt   pgtype.Timestamptz
+	Limit       int32
+}
+
+func (q *Queries) GetEventsForUser(ctx context.Context, arg GetEventsForUserParams) ([]Event, error) {
+	rows, err := q.db.Query(ctx, getEventsForUser, arg.AggregateID, arg.CreatedAt, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Event
+	for rows.Next() {
+		var i Event
+		if err := rows.Scan(
+			&i.ID,
+			&i.AggregateID,
+			&i.AggregateKind,
+			&i.Kind,
+			&i.Version,
+			&i.CreatedAt,
+			&i.Data,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEventsFrom = `-- name: GetEventsFrom :many
-SELECT id, aggregate_id, kind, version, created_at, data FROM events
+SELECT id, aggregate_id, aggregate_kind, kind, version, created_at, data FROM events
 WHERE created_at >= $1 LIMIT $2
 `
 
@@ -123,6 +165,7 @@ func (q *Queries) GetEventsFrom(ctx context.Context, arg GetEventsFromParams) ([
 		if err := rows.Scan(
 			&i.ID,
 			&i.AggregateID,
+			&i.AggregateKind,
 			&i.Kind,
 			&i.Version,
 			&i.CreatedAt,

@@ -9,12 +9,13 @@ import (
 )
 
 type Event struct {
-	ID          int64
-	AggregateID int32
-	Kind        string
-	Version     string
-	CreatedAt   pgtype.Timestamptz
-	Data        []byte
+	ID            int64
+	AggregateID   int32
+	AggregateKind string
+	Kind          string
+	Version       string
+	CreatedAt     pgtype.Timestamptz
+	Data          []byte
 }
 
 type User struct {

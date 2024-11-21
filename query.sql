@@ -27,7 +27,11 @@ WHERE created_at >= $1 LIMIT $2;
 
 -- name: CreateEvent :one
 INSERT INTO events
-    (aggregate_id, kind, version, created_at, data)
+    (aggregate_id, aggregate_kind, kind, version, created_at, data)
 VALUES
-    ($1, $2, $3, current_timestamp, $4)
+    ($1, $2, $3, $4, current_timestamp, $5)
 RETURNING *;
+
+-- name: GetEventsForUser :many
+SELECT * FROM events
+WHERE aggregate_id = $1 AND aggregate_kind = 'user' AND created_at >= $2 LIMIT $3;
