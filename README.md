@@ -44,7 +44,7 @@ curl --location 'http://127.0.0.1:5000/users' \
 update a user
 
 ```shell
-curl --location --request PUT 'http://127.0.0.1:5000/users/{userId}' \
+curl --location --request PUT 'http://127.0.0.1:5000/users/$(USER_ID)' \
 --header 'Content-Type: application/json' \
 --data '{
     "name": "bryan",
@@ -67,5 +67,5 @@ curl --location 'http://127.0.0.1:5000/events'
 get all events for a user
 
 ```shell
-curl --location 'http://127.0.0.1:5000/users/{userId}/events'
+curl --location 'http://127.0.0.1:5000/users/$(USER_ID)/events'
 ```
